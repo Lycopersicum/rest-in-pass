@@ -1,0 +1,19 @@
+{
+  "name": "tests-rest",
+  "version": "1.0.0",
+  "description": "NodeJS test suite for REST API",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha *.spec.js"
+  },
+  "author": "Lycopersicum <42L@protonmail.com>",
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "chai": "^4.1.1",
+    "chai-http": "^3.0.0",
+    "express": "^4.15.4",
+    "mocha": "^3.5.0"
+  },
+  "dependencies": {
+  }
+}
