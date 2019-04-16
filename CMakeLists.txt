@@ -9,12 +9,6 @@ if(DTLS)
     message(FATAL_ERROR "DTLS option is not supported." )
 endif()
 
-set(THIRD_PARTY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party")
-
-set(ULFIUS_CMAKE_MODULES_DIR "${THIRD_PARTY_DIR}/ulfius/cmake-modules")
-
-list(APPEND CMAKE_MODULE_PATH ${ULFIUS_CMAKE_MODULES_DIR})
-
 include(${CMAKE_CURRENT_LIST_DIR}/src/rest_in_pass.cmake)
 
 add_executable(${PROJECT_NAME} ${REST_IN_PASS_SOURCES})
@@ -54,7 +48,8 @@ message("Threads: ${CMAKE_THREAD_LIBS_INIT}")
 set(LIBRARIES ${LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 # Jansson
-find_package(Jansson REQUIRED)
+find_library(JANSSON_LIBRARY jansson)
+set(JANSSON_LIBRARIES ${JANSSON_LIBRARY})
 set(LIBRARIES ${LIBRARIES} ${JANSSON_LIBRARIES})
 
 # curl depends on gnutls, (idn2, rtmp, ares, ldap if not built manually)
@@ -67,15 +62,15 @@ find_library(GCRYPT_LIBRARY gcrypt)
 set(GCRYPT_LIBRARIES ${GCRYPT_LIBRARY} ${GPG-ERROR_LIBRARY})
 
 # MicroHTTPD depends on gnutls, gcrypt, pthread (libcurl if not built manually)
-find_package(MHD REQUIRED)
-set(MHD_LIBRARIES ${MHD_LIBRARIES} ${GNUTLS_LIBRARIES} ${CURL_LIBRARIES} ${GCRYPT_LIBRARIES}  ${CMAKE_THREAD_LIBS_INIT})
+find_library(MHD_LIBRARY microhttpd)
+set(MHD_LIBRARIES ${MHD_LIBRARY} ${GNUTLS_LIBRARIES} ${CURL_LIBRARIES} ${GCRYPT_LIBRARIES}  ${CMAKE_THREAD_LIBS_INIT})
 
 # Orcania depends on jansson
-find_package(Orcania REQUIRED)
-set(ORCANIA_LIBRARIES ${ORCANIA_LIBRARIES} ${ORCANIA_LIBRARIES} ${JANSSON_LIBRARIES})
-find_library(ULFIUS_LIBRARY ulfius)
+find_library(ORCANIA_LIBRARY orcania)
+set(ORCANIA_LIBRARIES ${ORCANIA_LIBRARIES} ${ORCANIA_LIBRARY} ${JANSSON_LIBRARIES})
 
 # Ulfius depends on liborcania, libcurl, jansson, libmicrohttpd > 0.9.51 (libyder if not built manually)
+find_library(ULFIUS_LIBRARY ulfius)
 set(ULFIUS_LIBRARIES ${ULFIUS_LIBRARY} ${ORCANIA_LIBRARIES} ${MHD_LIBRARIES})
 set(LIBRARIES ${LIBRARIES} ${ULFIUS_LIBRARIES})
 
