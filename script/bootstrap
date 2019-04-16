@@ -28,7 +28,11 @@ else
 fi
 
 BUILD_TOOLS_APT="git-core cmake build-essential automake libtool gnutls-bin"
-DEPENDANT_LIBRARIES_APT="libgnutls28-dev libmicrohttpd-dev libjansson-dev libulfius-dev"
+DEPENDANT_LIBRARIES_APT="libgnutls28-dev libmicrohttpd-dev libjansson-dev"
+
+ULFFIUS_DIR="${THIRD_PARTY_DIR}/ulfius"
+
+CMAKE_ARGS_BASE="-DCMAKE_INSTALL_PREFIX=${PREFIX_PATH_DIR} -DCMAKE_PREFIX_PATH=${PREFIX_PATH_DIR}"
 
 echo_stderr () {
     echo "$@" >&2
@@ -60,6 +64,22 @@ update_repositories () {
     fi
 
     return 0
+}
+
+update_submodules () {
+    eval "cd ${PROJECT_ROOT_DIR}"
+
+    git submodule update --init --recursive ||
+    (
+        echo_stderr "Failed to update submodules!"
+        return 1
+    )
+
+    cd -
+}
+
+install_submodules () {
+    install_ulfius
 }
 
 install_build_tools () {
@@ -100,6 +120,25 @@ install_dependant_libraries_packages () {
     fi
 
     return $?
+}
+
+install_ulfius () {
+    cmake_args="${CMAKE_ARGS_BASE} -DWITH_YDER=off -DBUILD_UWSC=off -DWITH_GNUTLS=on -DWITH_CURL=on -DBUILD_STATIC=on"
+
+    echo "    - Installing Ulfius..."
+
+    eval "rm -rf ${ULFFIUS_DIR}/build"
+    eval "mkdir ${ULFFIUS_DIR}/build"
+    eval "cd ${ULFFIUS_DIR}/build"
+
+    {
+        eval "cmake ../ ${cmake_args}" &&
+        make clean && make && make install &&
+        cd -
+    } >> ${LOG_FILE} 2>&1 || {
+        library_error "Ulfius"
+        return 1
+    }
 }
 
 sudo -v
