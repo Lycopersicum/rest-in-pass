@@ -141,8 +141,6 @@ install_software_array_if_not_found () {
 }
 
 export -f echo_stderr
-export -f echo_
-export -f printf_
 export -f update_repositories
 export -f install_software
 export -f install_software_if_not_found
