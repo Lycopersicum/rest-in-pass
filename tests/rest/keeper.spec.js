@@ -9,24 +9,24 @@ chai.use(chai_http);
 const KEEPER_SECRET = "dmVyeS1iYXNpYw=="
 const PASSWORDS = {
   good: {
-    name: 'see-you-later',
+    name: 'see_you_later',
     secret:'aligator'
   },
   no_name: {
-    secret: 'no-name',
+    secret: 'no_name',
   },
   no_secret: {
-    name: 'no-secret',
+    name: 'no_secret',
   },
   integer_name: {
     name: 42,
     secret: '*'
   },
   integer_secret: {
-    name: 'once-more',
+    name: 'once_more',
     secret: 1
   },
-  not_an_object: 'too-bad',
+  not_an_object: 'too_bad',
 };
 
 describe('Password keeper passwords interface', function () {
@@ -45,7 +45,6 @@ describe('Password keeper passwords interface', function () {
         .post('/keeper')
         .send(PASSWORDS['good'])
         .end(function (err, res) {
-          should.not.exist(err);
           res.should.have.status(401);
 
           done();
@@ -58,7 +57,6 @@ describe('Password keeper passwords interface', function () {
         .set('Authorization', 'Basic abc' + KEEPER_SECRET)
         .send(PASSWORDS['good'])
         .end(function (err, res) {
-          should.not.exist(err);
           res.should.have.status(403);
 
           done();
@@ -71,7 +69,6 @@ describe('Password keeper passwords interface', function () {
         .set('Authorization', 'Basic ' + KEEPER_SECRET)
         .send(PASSWORDS['good'])
         .end(function (err, res) {
-          should.not.exist(err);
           res.should.have.status(201);
 
           done();
@@ -84,9 +81,7 @@ describe('Password keeper passwords interface', function () {
         .set('Authorization', 'Basic ' + KEEPER_SECRET)
         .send(PASSWORDS['good'])
         .end(function (err, res) {
-          should.exist(err);
-          err.should.have.status(409);
-
+          res.should.have.status(409);
           done();
         });
     });
@@ -97,8 +92,7 @@ describe('Password keeper passwords interface', function () {
         .set('Authorization', 'Basic ' + KEEPER_SECRET)
         .send(PASSWORDS['no_secret'])
         .end(function (err, res) {
-          should.exist(err);
-          err.should.have.status(400);
+          res.should.have.status(400);
           done();
         });
     });
@@ -109,8 +103,7 @@ describe('Password keeper passwords interface', function () {
         .set('Authorization', 'Basic ' + KEEPER_SECRET)
         .send(PASSWORDS['no_name'])
         .end(function (err, res) {
-          should.exist(err);
-          err.should.have.status(400);
+          res.should.have.status(400);
           done();
         });
     });
@@ -121,8 +114,7 @@ describe('Password keeper passwords interface', function () {
         .set('Authorization', 'Basic ' + KEEPER_SECRET)
         .send(PASSWORDS['integer_secret'])
         .end(function (err, res) {
-          should.exist(err);
-          err.should.have.status(400);
+          res.should.have.status(400);
           done();
         });
     });
@@ -131,10 +123,9 @@ describe('Password keeper passwords interface', function () {
       chai.request(server)
         .post('/keeper')
         .set('Authorization', 'Basic ' + KEEPER_SECRET)
-        .send(Buffer([PASSWORDS['integer_name']]))
+        .send(PASSWORDS['integer_name'])
         .end(function (err, res) {
-          should.exist(err);
-          err.should.have.status(400);
+          res.should.have.status(400);
           done();
         });
     });
@@ -145,8 +136,7 @@ describe('Password keeper passwords interface', function () {
         .set('Authorization', 'Basic ' + KEEPER_SECRET)
         .send(PASSWORDS['not_an_object'])
         .end(function (err, res) {
-          should.exist(err);
-          err.should.have.status(415);
+          res.should.have.status(415);
           done();
         });
     });
@@ -158,21 +148,18 @@ describe('Password keeper passwords interface', function () {
         .get('/keeper/' + PASSWORDS['good']['name'])
         .set('Authorization', 'Basic ' + KEEPER_SECRET)
         .end(function (err, res) {
-          should.not.exist(err);
           res.should.have.status(200);
-          res.body.should.be.eql(PASSWORDS['good']['secret']);
-
+          res.text.should.be.eql(PASSWORDS['good']['secret']);
           done();
         });
     });
 
     it('should\'nt read unexisting password instance', function(done) {
       chai.request(server)
-        .post('/keeper/not-existing-password')
+        .get('/keeper/not-existing-password')
         .set('Authorization', 'Basic ' + KEEPER_SECRET)
         .end(function (err, res) {
-          should.exist(err);
-          err.should.have.status(404);
+          res.should.have.status(404);
 
           done();
         });
@@ -181,21 +168,21 @@ describe('Password keeper passwords interface', function () {
 
   describe('PUT /keeper', function () {
     it('should change password instance secret', function(done) {
+      const new_secret = "new_secret";
       chai.request(server)
         .put('/keeper/' + PASSWORDS['good']['name'])
         .set('Authorization', 'Basic ' + KEEPER_SECRET)
-        .send(PASSWORDS['good']['name'])
+        .set('Content-Type', 'text/plain')
+        .send(new_secret)
         .end(function (err, res) {
-          should.not.exist(err);
           res.should.have.status(204);
 
           chai.request(server)
             .get('/keeper/' + PASSWORDS['good']['name'])
             .set('Authorization', 'Basic ' + KEEPER_SECRET)
             .end(function (err, res) {
-              should.not.exist(err);
               res.should.have.status(200);
-              res.body.should.be.eql(PASSWORDS['good']['name']);
+              res.text.should.be.eql(new_secret);
 
               done();
             });
@@ -206,11 +193,9 @@ describe('Password keeper passwords interface', function () {
       chai.request(server)
         .put('/keeper/' + PASSWORDS['good']['name'])
         .set('Authorization', 'Basic ' + KEEPER_SECRET)
-        .send(PASSWORDS['integer_name']['name'])
+        .send(Buffer[1])
         .end(function (err, res) {
-          should.exist(err);
-          err.should.have.status(400);
-
+          res.should.have.status(415);
           done();
         });
     });
@@ -219,10 +204,10 @@ describe('Password keeper passwords interface', function () {
       chai.request(server)
         .put('/keeper/not-existing-password')
         .set('Authorization', 'Basic ' + KEEPER_SECRET)
+        .set('Content-Type', 'text/plain')
         .send(PASSWORDS['good']['secret'])
         .end(function (err, res) {
-          should.exist(err);
-          err.should.have.status(404);
+          res.should.have.status(404);
 
           done();
         });
@@ -235,9 +220,7 @@ describe('Password keeper passwords interface', function () {
         .delete('/keeper/' + PASSWORDS['good']['name'])
         .set('Authorization', 'Basic ' + KEEPER_SECRET)
         .end(function (err, res) {
-          should.not.exist(err);
           res.should.have.status(204);
-
           done();
         });
     });
@@ -247,9 +230,7 @@ describe('Password keeper passwords interface', function () {
         .delete('/keeper/not-existing-password')
         .set('Authorization', 'Basic ' + KEEPER_SECRET)
         .end(function (err, res) {
-          should.exist(err);
-          err.should.have.status(404);
-
+          res.should.have.status(404);
           done();
         });
     });

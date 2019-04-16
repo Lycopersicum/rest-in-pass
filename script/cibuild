@@ -11,7 +11,7 @@ if [ -z "${BUILD_DIR}" ]; then
 fi
 
 export BUILD_DIR
-eval "${SCRIPTS_DIR}/setup -DCODE_COVERAGE=ON"
+eval "${SCRIPTS_DIR}/setup -DCODE_COVERAGE=ON -DDEBUG=ON"
 
 eval "${SCRIPTS_DIR}/test"
 
