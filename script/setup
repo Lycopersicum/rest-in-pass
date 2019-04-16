@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -e
-set -x
 
 PROJECT_ROOT_DIR="$(cd $(dirname "$0")/.. && pwd -P)"
 SCRIPTS_DIR="${PROJECT_ROOT_DIR}/script"
