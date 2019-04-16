@@ -80,8 +80,7 @@ then
     exit 1
 fi
 
-REGULAR_PROJECT_PID=$(run_project "secure" "-c ${PROJECT_ROOT_DIR}/tests/rest/secure.cfg")
-SECURE_PROJECT_PID=$(run_project "secure" "-c ${PROJECT_ROOT_DIR}/tests/rest/secure.cfg")
+REGULAR_PROJECT_PID=$(run_project "regular" "-c ${PROJECT_ROOT_DIR}/tests/regular.cfg")
 
 test_status=1
 if eval "cd ${PROJECT_ROOT_DIR}/tests/rest" && npm install && npm test
