@@ -9,6 +9,7 @@ if(DTLS)
     message(FATAL_ERROR "DTLS option is not supported." )
 endif()
 
+include_directories(${CMAKE_INSTALL_PREFIX}/include)
 set(THIRD_PARTY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party")
 
 set(ULFIUS_CMAKE_MODULES_DIR "${THIRD_PARTY_DIR}/ulfius/cmake-modules")
