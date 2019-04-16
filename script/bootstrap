@@ -1,0 +1,164 @@
+#!/bin/bash
+
+set -e
+
+PROJECT_ROOT_DIR="$(cd $(dirname "$0")/.. && pwd -P)"
+THIRD_PARTY_DIR="${PROJECT_ROOT_DIR}/third_party"
+DEFAULT_LOG_DIR="${PROJECT_ROOT_DIR}/script/log"
+
+if [ -z "${BUILD_DIR}" ]; then
+    BUILD_DIR="${PROJECT_ROOT_DIR}/build"
+fi
+
+if [ -z "${PREFIX_PATH_DIR}" ]; then
+    PREFIX_PATH_DIR="${BUILD_DIR}"
+fi
+
+SCRIPT_NAME=$(basename -- "$0")
+TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
+
+if [ -z "${LOG_FILE}" ]; then
+    if [ ! -d "${DEFAULT_LOG_DIR}" ]; then
+        eval "mkdir ${DEFAULT_LOG_DIR}"
+    fi
+
+    LOG_FILE="${DEFAULT_LOG_DIR}/${SCRIPT_NAME}_${TIMESTAMP}.log"
+else
+    export LOG_FILE
+fi
+
+BUILD_TOOLS_APT="git-core cmake build-essential automake libtool gnutls-bin"
+DEPENDANT_LIBRARIES_APT="libgnutls28-dev libmicrohttpd-dev libjansson-dev"
+
+ULFFIUS_DIR="${THIRD_PARTY_DIR}/ulfius"
+
+CMAKE_ARGS_BASE="-DCMAKE_INSTALL_PREFIX=${PREFIX_PATH_DIR} -DCMAKE_PREFIX_PATH=${PREFIX_PATH_DIR}"
+
+echo_stderr () {
+    echo "$@" >&2
+}
+
+library_error () {
+    echo_stderr "Failed to install $1!"
+    echo_stderr ""
+    echo_stderr "For more information refer to \"${LOG_FILE}\""
+
+    exit 1
+}
+
+update_repositories () {
+    if which apt-get; then
+        sudo apt-get update -qq
+    elif which rpm; then
+        echo_stderr "RPM is not supported yet!"
+        return 1
+    elif which opkg; then
+        echo_stderr "OPKG is not supported yet!"
+        return 1
+    elif which brew; then
+        echo_stderr "BREW is not supported yet!"
+        return 1
+    else
+        echo_stderr "Unknown package manager! (not supported yet)"
+        return 1
+    fi
+
+    return 0
+}
+
+update_submodules () {
+    eval "cd ${PROJECT_ROOT_DIR}"
+
+    git submodule update --init --recursive ||
+    (
+        echo_stderr "Failed to update submodules!"
+        return 1
+    )
+
+    cd -
+}
+
+install_submodules () {
+    install_ulfius
+}
+
+install_build_tools () {
+    if which apt-get; then
+        eval "sudo apt-get install -yqq ${BUILD_TOOLS_APT}"
+    elif which rpm; then
+        echo_stderr "RPM is not supported yet!"
+        return 1
+    elif which opkg; then
+        echo_stderr "OPKG is not supported yet!"
+        return 1
+    elif which brew; then
+        echo_stderr "BREW is not supported yet!"
+        return 1
+    else
+        echo_stderr "Unknown package manager! (not supported yet)"
+        return 1
+    fi
+
+    return $?
+}
+
+install_dependant_libraries_packages () {
+    if which apt-get; then
+        eval "sudo apt-get install -yqq ${DEPENDANT_LIBRARIES_APT}"
+    elif which rpm; then
+        echo_stderr "RPM is not supported yet!"
+        return 1
+    elif which opkg; then
+        echo_stderr "OPKG is not supported yet!"
+        return 1
+    elif which brew; then
+        echo_stderr "BREW is not supported yet!"
+        return 1
+    else
+        echo_stderr "Unknown package manager! (not supported yet)"
+        return 1
+    fi
+
+    return $?
+}
+
+install_ulfius () {
+    cmake_args="${CMAKE_ARGS_BASE} -DWITH_YDER=off -DBUILD_UWSC=off -DWITH_GNUTLS=on -DWITH_CURL=on -DBUILD_STATIC=on"
+
+    echo "    - Installing Ulfius..."
+
+    eval "rm -rf ${ULFFIUS_DIR}/build"
+    eval "mkdir ${ULFFIUS_DIR}/build"
+    eval "cd ${ULFFIUS_DIR}/build"
+
+    {
+        eval "cmake ../ ${cmake_args}" &&
+        make clean && make && make install &&
+        cd -
+    } >> ${LOG_FILE} 2>&1 || {
+        library_error "Ulfius"
+        return 1
+    }
+}
+
+sudo -v
+
+eval "rm -rf ${BUILD_DIR}"
+eval "mkdir ${BUILD_DIR}"
+
+echo "==> Updating package lists..."
+update_repositories >> ${LOG_FILE}
+
+echo "==> Installing building tools..."
+install_build_tools >> ${LOG_FILE}
+
+echo "==> Installing dependant libraries packages..."
+install_dependant_libraries_packages >> ${LOG_FILE}
+
+echo "==> Updating submodules..."
+update_submodules >> ${LOG_FILE}
+
+echo "==> Installing submodules..."
+install_submodules
+
+echo "Finished bootstrapping!"

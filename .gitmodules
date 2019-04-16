@@ -1,0 +1,6 @@
+[submodule "third_party/ulfius"]
+	path = third_party/ulfius
+	url = https://github.com/babelouest/ulfius
+[submodule "third_party/jansson"]
+	path = third_party/jansson
+	url = https://github.com/akheron/jansson
