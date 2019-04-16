@@ -1,0 +1,126 @@
+#!/bin/bash
+#
+# Punica - LwM2M server with REST API
+# Copyright (C) 2018 8devices
+#
+# This program is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License,
+# or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+
+set -e
+
+source "$(cd $(dirname "$0") && pwd -P)/.utils"
+
+BUILD_TOOLS_APT=("git" "cmake" "build-essential" "automake" "libtool")
+DEPENDANT_LIBRARIES_APT=("libmicrohttpd-dev")
+
+JANSSON_DIR="${THIRD_PARTY_DIR}/jansson"
+ULFFIUS_DIR="${THIRD_PARTY_DIR}/ulfius"
+
+CMAKE_ARGS_BASE="-DCMAKE_INSTALL_PREFIX=${PREFIX_PATH_DIR} -DCMAKE_PREFIX_PATH=${PREFIX_PATH_DIR}"
+MAKE_ARGS_BASE=""
+
+library_error () {
+    echo_stderr "Failed to install $1!"
+    echo_stderr ""
+    echo_stderr "For more information refer to \"${LOG_FILE}\""
+
+    exit 1
+}
+
+update_submodules () {
+    eval "cd ${PROJECT_ROOT_DIR}"
+
+    git submodule update --init --recursive ||
+    (
+        echo_stderr "Failed to update submodules!"
+        return 1
+    )
+
+    cd -
+}
+
+install_submodules () {
+    install_jansson
+    install_ulfius
+}
+
+install_jansson () {
+    cmake_args="${CMAKE_ARGS_BASE} -DJANSSON_WITHOUT_TESTS=on"
+    cmake_args="${cmake_args} -DJANSSON_BUILD_DOCS=off"
+    cmake_args="${cmake_args} -DJANSSON_EXAMPLES=off"
+    cmake_args="${cmake_args} -DJANSSON_BUILD_MAN=off"
+
+    echo "    - Installing Jansson..."
+
+    eval "rm -rf ${JANSSON_DIR}/build"
+    eval "mkdir ${JANSSON_DIR}/build"
+    eval "cd ${JANSSON_DIR}/build"
+
+    {
+        eval "cmake ../ ${cmake_args}" &&
+        make &&
+        make install &&
+        cd -
+    } >> ${LOG_FILE} 2>&1 || {
+        library_error "Jansson"
+        return 1
+    }
+}
+
+install_ulfius () {
+    cmake_args="${CMAKE_ARGS_BASE} -DWITH_YDER=off"
+    cmake_args="${cmake_args} -DBUILD_UWSC=off"
+    cmake_args="${cmake_args} -DWITH_GNUTLS=off"
+    cmake_args="${cmake_args} -DWITH_CURL=off"
+    cmake_args="${cmake_args} -DBUILD_STATIC=on"
+
+    echo "    - Installing Ulfius..."
+
+    eval "rm -rf ${ULFFIUS_DIR}/build"
+    eval "mkdir ${ULFFIUS_DIR}/build"
+    eval "cd ${ULFFIUS_DIR}/build"
+
+    {
+        eval "cmake ../ ${cmake_args}" &&
+        make clean &&
+        make &&
+        make install &&
+        cd -
+    } >> ${LOG_FILE} 2>&1 || {
+        library_error "Ulfius"
+        return 1
+    }
+}
+
+sudo -v
+
+eval "rm -rf ${BUILD_DIR}"
+eval "mkdir -p ${BUILD_DIR}"
+
+echo "==> Updating package lists..."
+update_repositories
+
+echo "==> Installing building tools..."
+install_software_array_if_not_found "${BUILD_TOOLS_APT[@]}"
+
+echo "==> Installing dependant libraries packages..."
+install_software_array_if_not_found "${DEPENDANT_LIBRARIES_APT[@]}"
+
+echo "==> Updating submodules..."
+update_submodules >> ${LOG_FILE}
+
+echo "==> Installing submodules..."
+install_submodules
+
+echo "Finished bootstrapping!"

@@ -1,0 +1,33 @@
+#!/bin/bash
+
+set -e
+
+PROJECT_ROOT_DIR="$(cd $(dirname "$0")/.. && pwd -P)"
+SCRIPTS_DIR="${PROJECT_ROOT_DIR}/script"
+
+if [ -z "${BUILD_DIR}" ]; then
+    BUILD_DIR="${PROJECT_ROOT_DIR}/build"
+    export BUILD_DIR
+fi
+
+PREFIX_PATH_DIR="${BUILD_DIR}"
+
+CMAKE_ARGS_BASE="-DCMAKE_INSTALL_PREFIX:PATH=${PREFIX_PATH_DIR} -DCMAKE_PREFIX_PATH=${PREFIX_PATH_DIR}"
+
+build_project () {
+    cmake_arguments="${CMAKE_ARGS_BASE} $@"
+    mkdir -p ${BUILD_DIR}/src &&
+    eval "cd ${BUILD_DIR}" &&
+    eval "cmake ${cmake_arguments} ${PROJECT_ROOT_DIR}" &&
+    make &&
+    cd -
+}
+
+if [ ! "${SKIP_BOOTSTRAP}" = "true" ]; then
+    export BUILD_DIR
+    export PREFIX_PATH_DIR
+    eval "${SCRIPTS_DIR}/bootstrap"
+fi
+
+build_project "$@"
+eval "strip -s ${BUILD_DIR}/rest-in-pass"

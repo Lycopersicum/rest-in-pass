@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -e
+
+PROJECT_ROOT_DIR="$(cd $(dirname "$0")/.. && pwd -P)"
+SCRIPTS_DIR="${PROJECT_ROOT_DIR}/script"
+DEFAULT_LOG_DIR="${PROJECT_ROOT_DIR}/script/log"
+
+if [ -z "${BUILD_DIR}" ]; then
+    BUILD_DIR="${PROJECT_ROOT_DIR}/build"
+fi
+
+export BUILD_DIR
+eval "${SCRIPTS_DIR}/setup -DCODE_COVERAGE=ON"
+
+eval "${SCRIPTS_DIR}/test"
+
+sleep_interval=0.1
+sleep_timeout=10 # Timeout in seconds
+for time_slept in $(seq 0.0 ${sleep_interval} ${sleep_timeout})
+do
+    if [ -d "regular" ]; then
+        eval "cp -r ${BUILD_DIR} ${PROJECT_ROOT_DIR}/src ${PROJECT_ROOT_DIR}/regular"
+
+        exit 0
+    fi
+    eval "sleep ${sleep_interval}"
+done
+
+(>&2 echo "Not all code coverage report directories appeared in ${sleep_timeout} seconds!")
+exit 1
