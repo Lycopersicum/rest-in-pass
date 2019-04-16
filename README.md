@@ -1,4 +1,4 @@
-# rest-in-pass
+# REST-In-Pass
 
 [![Build Status](https://travis-ci.com/Lycopersicum/rest-in-pass.svg?branch=master)](https://travis-ci.com/Lycopersicum/rest-in-pass) [![codecov.io](http://codecov.io/github/Lycopersicum/rest-in-pass/coverage.svg?branch=master)](http://codecov.io/github/Lycopersicum/rest-in-pass?branch=master)
 
@@ -7,11 +7,11 @@ REST In Pass - Password storage with REST API.
 Detailed [REST API documentation](./doc/REST_API.md).
 
 ## Building
-Punica follows [scripts to rule them all](https://github.com/github/scripts-to-rule-them-all) guidelines, therefore getting dependencies,
+REST In Pass follows [scripts to rule them all](https://github.com/github/scripts-to-rule-them-all) guidelines, therefore getting dependencies,
 building and testing is implemented by executing scripts, however if you want,
 you can read [manual project build instructions](./doc/MANUAL_BUILD.md).
 
-1. Download [punica/punica](https://github.com/punica/punica):
+1. Download [rest-in-pass](https://github.com/Lycopersicum/rest-in-pass):
 ```
 $ git clone --recursive https://github.com/Lycopersicum/rest-in-pass.git
 $ cd rest-in-pass
@@ -41,9 +41,9 @@ REST In Pass - Password storage with REST API
 Mandatory or optional arguments to long options are also mandatory or optional
 ```
 
-You can get some details about `punica` usage by using `--usage` argument:
+You can get some details about `rest-in-pass` usage by using `--usage` argument:
 ```
-$ ./build/punica --usage
+$ ./build/rest-in-pass --usage
 Usage: rest-in-pass [-?] [-c FILE] [--config=FILE] [--help] [--usage]
 ```
 
