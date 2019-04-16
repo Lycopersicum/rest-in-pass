@@ -85,7 +85,6 @@ target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
 target_compile_options(${PROJECT_NAME} PRIVATE "-Wall")
 if(DEBUG)
     target_compile_options(${PROJECT_NAME} PRIVATE "-Wall" "-O" "-g3")
-    #     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
 if(CODE_COVERAGE)

@@ -1,34 +1,42 @@
 #!/bin/bash
-#
-# Punica - LwM2M server with REST API
-# Copyright (C) 2018 8devices
-#
-# This program is free software: you can redistribute it and/or modify it
-# under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License,
-# or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program. If not, see <https://www.gnu.org/licenses/>.
-#
 
 set -e
 
-source "$(cd $(dirname "$0") && pwd -P)/.utils"
+PROJECT_ROOT_DIR="$(cd $(dirname "$0")/.. && pwd -P)"
+THIRD_PARTY_DIR="${PROJECT_ROOT_DIR}/third_party"
+DEFAULT_LOG_DIR="${PROJECT_ROOT_DIR}/script/log"
 
-BUILD_TOOLS_APT=("git" "cmake" "build-essential" "automake" "libtool")
-DEPENDANT_LIBRARIES_APT=("libmicrohttpd-dev")
+if [ -z "${BUILD_DIR}" ]; then
+    BUILD_DIR="${PROJECT_ROOT_DIR}/build"
+fi
 
-JANSSON_DIR="${THIRD_PARTY_DIR}/jansson"
+if [ -z "${PREFIX_PATH_DIR}" ]; then
+    PREFIX_PATH_DIR="${BUILD_DIR}"
+fi
+
+SCRIPT_NAME=$(basename -- "$0")
+TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
+
+if [ -z "${LOG_FILE}" ]; then
+    if [ ! -d "${DEFAULT_LOG_DIR}" ]; then
+        eval "mkdir ${DEFAULT_LOG_DIR}"
+    fi
+
+    LOG_FILE="${DEFAULT_LOG_DIR}/${SCRIPT_NAME}_${TIMESTAMP}.log"
+else
+    export LOG_FILE
+fi
+
+BUILD_TOOLS_APT="git-core cmake build-essential automake libtool gnutls-bin"
+DEPENDANT_LIBRARIES_APT="libgnutls28-dev libmicrohttpd-dev libjansson-dev"
+
 ULFFIUS_DIR="${THIRD_PARTY_DIR}/ulfius"
 
 CMAKE_ARGS_BASE="-DCMAKE_INSTALL_PREFIX=${PREFIX_PATH_DIR} -DCMAKE_PREFIX_PATH=${PREFIX_PATH_DIR}"
-MAKE_ARGS_BASE=""
+
+echo_stderr () {
+    echo "$@" >&2
+}
 
 library_error () {
     echo_stderr "Failed to install $1!"
@@ -36,6 +44,26 @@ library_error () {
     echo_stderr "For more information refer to \"${LOG_FILE}\""
 
     exit 1
+}
+
+update_repositories () {
+    if which apt-get; then
+        sudo apt-get update -qq
+    elif which rpm; then
+        echo_stderr "RPM is not supported yet!"
+        return 1
+    elif which opkg; then
+        echo_stderr "OPKG is not supported yet!"
+        return 1
+    elif which brew; then
+        echo_stderr "BREW is not supported yet!"
+        return 1
+    else
+        echo_stderr "Unknown package manager! (not supported yet)"
+        return 1
+    fi
+
+    return 0
 }
 
 update_submodules () {
@@ -51,39 +79,51 @@ update_submodules () {
 }
 
 install_submodules () {
-    install_jansson
     install_ulfius
 }
 
-install_jansson () {
-    cmake_args="${CMAKE_ARGS_BASE} -DJANSSON_WITHOUT_TESTS=on"
-    cmake_args="${cmake_args} -DJANSSON_BUILD_DOCS=off"
-    cmake_args="${cmake_args} -DJANSSON_EXAMPLES=off"
-    cmake_args="${cmake_args} -DJANSSON_BUILD_MAN=off"
-
-    echo "    - Installing Jansson..."
-
-    eval "rm -rf ${JANSSON_DIR}/build"
-    eval "mkdir ${JANSSON_DIR}/build"
-    eval "cd ${JANSSON_DIR}/build"
-
-    {
-        eval "cmake ../ ${cmake_args}" &&
-        make &&
-        make install &&
-        cd -
-    } >> ${LOG_FILE} 2>&1 || {
-        library_error "Jansson"
+install_build_tools () {
+    if which apt-get; then
+        eval "sudo apt-get install -yqq ${BUILD_TOOLS_APT}"
+    elif which rpm; then
+        echo_stderr "RPM is not supported yet!"
         return 1
-    }
+    elif which opkg; then
+        echo_stderr "OPKG is not supported yet!"
+        return 1
+    elif which brew; then
+        echo_stderr "BREW is not supported yet!"
+        return 1
+    else
+        echo_stderr "Unknown package manager! (not supported yet)"
+        return 1
+    fi
+
+    return $?
+}
+
+install_dependant_libraries_packages () {
+    if which apt-get; then
+        eval "sudo apt-get install -yqq ${DEPENDANT_LIBRARIES_APT}"
+    elif which rpm; then
+        echo_stderr "RPM is not supported yet!"
+        return 1
+    elif which opkg; then
+        echo_stderr "OPKG is not supported yet!"
+        return 1
+    elif which brew; then
+        echo_stderr "BREW is not supported yet!"
+        return 1
+    else
+        echo_stderr "Unknown package manager! (not supported yet)"
+        return 1
+    fi
+
+    return $?
 }
 
 install_ulfius () {
-    cmake_args="${CMAKE_ARGS_BASE} -DWITH_YDER=off"
-    cmake_args="${cmake_args} -DBUILD_UWSC=off"
-    cmake_args="${cmake_args} -DWITH_GNUTLS=off"
-    cmake_args="${cmake_args} -DWITH_CURL=off"
-    cmake_args="${cmake_args} -DBUILD_STATIC=on"
+    cmake_args="${CMAKE_ARGS_BASE} -DWITH_YDER=off -DBUILD_UWSC=off -DWITH_GNUTLS=on -DWITH_CURL=on -DBUILD_STATIC=on"
 
     echo "    - Installing Ulfius..."
 
@@ -93,9 +133,7 @@ install_ulfius () {
 
     {
         eval "cmake ../ ${cmake_args}" &&
-        make clean &&
-        make &&
-        make install &&
+        make clean && make && make install &&
         cd -
     } >> ${LOG_FILE} 2>&1 || {
         library_error "Ulfius"
@@ -106,16 +144,16 @@ install_ulfius () {
 sudo -v
 
 eval "rm -rf ${BUILD_DIR}"
-eval "mkdir -p ${BUILD_DIR}"
+eval "mkdir ${BUILD_DIR}"
 
 echo "==> Updating package lists..."
-update_repositories
+update_repositories >> ${LOG_FILE}
 
 echo "==> Installing building tools..."
-install_software_array_if_not_found "${BUILD_TOOLS_APT[@]}"
+install_build_tools >> ${LOG_FILE}
 
 echo "==> Installing dependant libraries packages..."
-install_software_array_if_not_found "${DEPENDANT_LIBRARIES_APT[@]}"
+install_dependant_libraries_packages >> ${LOG_FILE}
 
 echo "==> Updating submodules..."
 update_submodules >> ${LOG_FILE}
