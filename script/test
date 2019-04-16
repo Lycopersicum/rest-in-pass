@@ -72,9 +72,7 @@ stop_project () {
     done
 }
 
-sudo -v
-
-if [ ! -x "${BUILD_DIR}/project" ]
+if [ ! -x "${BUILD_DIR}/rest-in-pass" ]
 then
     echo "Project binary not found!"
     exit 1
