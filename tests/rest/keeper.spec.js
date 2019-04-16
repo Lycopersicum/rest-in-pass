@@ -1,0 +1,216 @@
+const chai = require('chai');
+const chai_http = require('chai-http');
+const should = chai.should();
+const events = require('events');
+var server = require('./server-interface');
+
+chai.use(chai_http);
+
+const PASSWORDS = {
+  good: {
+    name: 'see-you-later',
+    secret:'aligator'
+  },
+  no_name: {
+    secret: 'no-name',
+  },
+  no_secret: {
+    name: 'no-secret',
+  },
+  integer_name: {
+    name: 42,
+    secret: '*'
+  },
+  integer_secret: {
+    name: 'once-more',
+    secret: 1
+  },
+  not_an_object: 'too-bad',
+};
+console.log('bandymas kazka irodyt');
+console.log(PASSWORDS['good']);
+
+describe('Password keeper passwords interface', function () {
+  before(function (done) {
+    server.start()
+    done();
+  });
+
+  after(function () {
+  });
+
+  describe('POST /keeper', function () {
+    it('should create new password instance', function(done) {
+      chai.request(server)
+        .post('/keeper')
+        .send(PASSWORDS['good'])
+        .end(function (err, res) {
+          should.not.exist(err);
+          res.should.have.status(201);
+          done();
+        });
+    });
+
+    it('should\'nt create duplicate password instance', function(done) {
+      chai.request(server)
+        .post('/keeper')
+        .send(PASSWORDS['good'])
+        .end(function (err, res) {
+          should.exist(err);
+          err.should.have.status(409);
+          done();
+        });
+    });
+
+    it('should\'nt create password instance without secret', function(done) {
+      chai.request(server)
+        .post('/keeper')
+        .send(PASSWORDS['no_secret'])
+        .end(function (err, res) {
+          should.exist(err);
+          err.should.have.status(400);
+          done();
+        });
+    });
+
+    it('should\'nt create password instance without name', function(done) {
+      chai.request(server)
+        .post('/keeper')
+        .send(PASSWORDS['no_name'])
+        .end(function (err, res) {
+          should.exist(err);
+          err.should.have.status(400);
+          done();
+        });
+    });
+
+    it('should\'nt create password instance with integer secret', function(done) {
+      chai.request(server)
+        .post('/keeper')
+        .send(PASSWORDS['integer_secret'])
+        .end(function (err, res) {
+          should.exist(err);
+          err.should.have.status(400);
+          done();
+        });
+    });
+
+    it('should\'nt create password instance with integer name', function(done) {
+      chai.request(server)
+        .post('/keeper')
+        .send(Buffer([PASSWORDS['integer_name']]))
+        .end(function (err, res) {
+          should.exist(err);
+          err.should.have.status(400);
+          done();
+        });
+    });
+
+    it('should\'nt create password instance from string', function(done) {
+      chai.request(server)
+        .post('/keeper')
+        .send(PASSWORDS['not_an_object'])
+        .end(function (err, res) {
+          should.exist(err);
+          err.should.have.status(415);
+          done();
+        });
+    });
+  });
+
+  describe('GET /keeper', function () {
+    it('should read password secret', function(done) {
+      chai.request(server)
+        .get('/keeper/' + PASSWORDS['good']['name'])
+        .end(function (err, res) {
+          should.not.exist(err);
+          res.should.have.status(200);
+
+          console.log('res.body is ' + res.body);
+          res.body.should.be.eql(PASSWORDS['good']['secret']);
+
+          done();
+        });
+    });
+
+    it('should\'nt read unexisting password instance', function(done) {
+      chai.request(server)
+        .post('/keeper/not-existing-password')
+        .end(function (err, res) {
+          should.exist(err);
+          err.should.have.status(404);
+          done();
+        });
+    });
+  });
+
+  describe('PUT /keeper', function () {
+    it('should change password instance secret', function(done) {
+      chai.request(server)
+        .put('/keeper/' + PASSWORDS['good']['name'])
+        .send(PASSWORDS['good']['name'])
+        .end(function (err, res) {
+          should.not.exist(err);
+          res.should.have.status(204);
+
+          chai.request(server)
+            .get('/keeper/' + PASSWORDS['good']['name'])
+            .end(function (err, res) {
+              should.not.exist(err);
+              res.should.have.status(200);
+
+              res.body.should.be.eql(PASSWORDS['good']['name']);
+
+              done();
+            });
+        });
+    });
+
+    it('should\'nt change password secret to integer', function(done) {
+      chai.request(server)
+        .put('/keeper/' + PASSWORDS['good']['name'])
+        .send(PASSWORDS['integer_name']['name'])
+        .end(function (err, res) {
+          should.exist(err);
+          err.should.have.status(400);
+
+          done();
+        });
+    });
+
+    it('should\'nt change unexisting password secret', function(done) {
+      chai.request(server)
+        .put('/keeper/not-existing-password')
+        .send(PASSWORDS['good']['secret'])
+        .end(function (err, res) {
+          should.exist(err);
+          err.should.have.status(404);
+          done();
+        });
+    });
+  });
+
+  describe('DELETE /keeper', function () {
+    it('should delete password secret', function(done) {
+      chai.request(server)
+        .delete('/keeper/' + PASSWORDS['good']['name'])
+        .end(function (err, res) {
+          should.not.exist(err);
+          res.should.have.status(204);
+
+          done();
+        });
+    });
+
+    it('should\'nt delete unexisting password instance', function(done) {
+      chai.request(server)
+        .delete('/keeper/not-existing-password')
+        .end(function (err, res) {
+          should.exist(err);
+          err.should.have.status(404);
+
+          done();
+        });
+    });
+  });
+});
